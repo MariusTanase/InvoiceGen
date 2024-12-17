@@ -1,15 +1,21 @@
-import { useState } from 'react'
+// add basic router and routes
+
+import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import NotFound from "./pages/NotFound";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-        <h1 className="text-3xl font-bold underline">
-      Hello world!
-    </h1>
-    </>
-  )
+    <BrowserRouter>
+      <nav className="bg-gray-800 text-white text-center p-4">
+        <Link to="/invoice">Create Invoice</Link> |{" "}
+        <Link to="/history">Invoice History</Link> |{" "}
+        <Link to="/clients">Set Clients</Link>
+      </nav>
+      <Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
