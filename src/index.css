@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+  .print\\:hidden {
+    display: none !important;
+  }
+}
+
+/* input[type="date"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+} */
+
+/* hide the input type[date] widget */
+
+@page {
+  size: A4 portrait; /* For A4 size in portrait orientation */
+  margin: 0.25cm; /* Set margins as needed */
+}
