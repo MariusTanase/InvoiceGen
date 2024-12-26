@@ -38,3 +38,43 @@ export interface ContactDetails {
   email: string;
   phone: string;
 }
+
+export type DialogBankDetailsProps = {
+  open: boolean;
+  set: (open: boolean) => void;
+  bankDetails: BankDetails;
+  setBankDetails: (details: BankDetails) => void;
+};
+
+export type BankDetails = {
+  account: string;
+  sort_code: string;
+  account_name: string;
+};
+
+// types/types.ts
+export type SenderData = {
+  id?: number;
+  name: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  country: string;
+  postcode: string;
+  email: string;
+  phone: string;
+};
+
+export type BusinessData = {
+  id?: number;
+  name: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  country: string;
+  postcode: string;
+  email: string;
+  phone: string;
+};

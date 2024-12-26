@@ -16,7 +16,34 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* hide the input type[date] widget */
 
-@page {
-  size: A4 portrait; /* For A4 size in portrait orientation */
-  margin: 0.25cm; /* Set margins as needed */
+@media print {
+  .print-content {
+    padding: 20px;
+    width: 100%;
+    margin: 0;
+    background: white;
+  }
+
+  body > *:not(.print-content) {
+    display: none !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  button {
+    display: none !important;
+  }
+
+  @page {
+    margin: 0.25cm;
+  }
+}
+
+.print-content {
+  min-height: 29.7cm;
+  /* padding: 1cm; */
+  margin: 1cm auto;
+  background: white;
 }

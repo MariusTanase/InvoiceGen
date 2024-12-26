@@ -19,7 +19,7 @@ function App() {
         <Route path="/invoice" element={<CreateInvoice />} />
         <Route path="/history" element={<InvoiceHistory />} />
         <Route path="/clients" element={<div>Clients</div>} />
-        <Route path="/clients" element={<div>Business</div>} />
+        <Route path="/business" element={<div>Business</div>} />
       </Routes>
     </BrowserRouter>
   );

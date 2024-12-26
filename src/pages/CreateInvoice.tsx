@@ -1,17 +1,21 @@
+// pages/CreateInvoice.tsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   ContactDetails,
   Invoice,
   InvoiceDetails,
   InvoiceItem,
+  BankDetails,
 } from "../types/types";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
-import { BsFillPersonLinesFill } from "react-icons/bs";
+import { BsCreditCard2Back, BsFillPersonLinesFill } from "react-icons/bs";
 import DialogSender from "../components/Invoice/DialogSender";
 import DialogBusiness from "../components/Invoice/DialogBusiness";
 import { useReactToPrint } from "react-to-print";
+import DialogBankDetails from "../components/Invoice/DialogBank";
+import InvoiceSidebar from "../components/Invoice/Sidebar";
 
 const CreateInvoice: React.FC = () => {
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -35,6 +39,13 @@ const CreateInvoice: React.FC = () => {
     total: 0,
   });
 
+  const [isOpenBank, setIsOpenBank] = useState(false);
+  const [bankDetails, setBankDetails] = useState<BankDetails>({
+    account: "",
+    sort_code: "",
+    account_name: "",
+  });
+
   const [sender, setSender] = useState<ContactDetails>({
     name: "",
     address1: "",
@@ -56,6 +67,12 @@ const CreateInvoice: React.FC = () => {
     email: "",
     phone: "",
   });
+
+  const [dialogSender, setDialogSender] = useState(false);
+  const [dialogBusiness, setDialogBusiness] = useState(false);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const reactToPrintFn = useReactToPrint({ contentRef });
 
   // Helper function to calculate subtotal and total
   const calculateTotals = (updatedItems: InvoiceItem[], tax: number) => {
@@ -90,13 +107,19 @@ const CreateInvoice: React.FC = () => {
       return;
     }
 
+    const formattedDate = currentItem.date
+      ? currentItem.date.split("-").reverse().join("-") // Ensure date format is consistent
+      : "";
+
     const amount = currentItem.qty * currentItem.rate;
-    const newItems = [...items, { ...currentItem, amount }];
+    const newItems = [
+      ...items,
+      { ...currentItem, date: formattedDate, amount },
+    ];
 
     const { subTotal, total } = calculateTotals(newItems, invoiceDetails.tax);
 
     setItems(newItems);
-    // push item to invoice items array
     setInvoiceDetails((prev) => ({
       ...prev,
       items: newItems,
@@ -110,7 +133,7 @@ const CreateInvoice: React.FC = () => {
   const randomHex = (length: number) => {
     const hex =
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let output = "LF-";
+    let output = "LT-";
     for (let i = 0; i < length; i++) {
       output += hex.charAt(Math.floor(Math.random() * hex.length));
     }
@@ -119,7 +142,6 @@ const CreateInvoice: React.FC = () => {
 
   // Clear the invoice form
   const clearInvoice = () => {
-    // prompt user to confirm
     if (!window.confirm("Are you sure you want to clear the invoice?")) {
       return;
     }
@@ -137,12 +159,34 @@ const CreateInvoice: React.FC = () => {
       subTotal: 0,
       total: 0,
     });
-    // clear localstorage
+    setSender({
+      name: "",
+      address1: "",
+      address2: "",
+      city: "",
+      country: "",
+      postcode: "",
+      email: "",
+      phone: "",
+    });
+    setBusiness({
+      name: "",
+      address1: "",
+      address2: "",
+      city: "",
+      country: "",
+      postcode: "",
+      email: "",
+      phone: "",
+    });
+    setBankDetails({
+      account: "",
+      sortCode: "",
+      accountName: "",
+    });
     localStorage.removeItem("senderData");
     localStorage.removeItem("businessData");
-
-    // reload the page
-    window.location.reload();
+    localStorage.removeItem("bankDetails");
   };
 
   const saveInvoice = async () => {
@@ -150,14 +194,25 @@ const CreateInvoice: React.FC = () => {
       return;
     }
 
+    if (!sender.name || !business.name || !bankDetails.accountName) {
+      alert(
+        "Please fill in all required details (Sender, Business, and Bank Details)"
+      );
+      return;
+    }
+
     let bigObject = {
-      invoiceDetails: invoiceDetails,
-      sender: sender,
-      business: business,
+      invoiceDetails: {
+        ...invoiceDetails,
+        items: items,
+      },
+      sender,
+      business,
+      bankDetails,
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/invoices", {
+      const response = await fetch("http://192.168.1.121:5000/api/invoices", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,54 +224,75 @@ const CreateInvoice: React.FC = () => {
         alert("Invoice saved successfully!");
         clearInvoice();
       } else {
-        alert("Failed to save invoice. Please try again.");
+        const errorData = await response.json();
+        alert(
+          `Failed to save invoice: ${errorData.message || "Please try again."}`
+        );
       }
     } catch (error) {
       console.error("Error saving invoice:", error);
       alert("An error occurred while saving the invoice. Please try again.");
-    } finally {
-      // clear localstorage
-      localStorage.removeItem("senderData");
-      localStorage.removeItem("businessData");
     }
   };
 
-  // Recalculate totals when tax changes
+  const handleLoadInvoice = (savedInvoice: any) => {
+    setInvoiceDetails({
+      items: savedInvoice.items || [],
+      invoiceNo: savedInvoice.invoiceNo,
+      invoiceDate: savedInvoice.invoiceDate,
+      dueDate: savedInvoice.dueDate || "",
+      recipient: savedInvoice.recipient || "",
+      date: savedInvoice.date || "",
+      tax: savedInvoice.tax || 0,
+      subTotal: savedInvoice.subTotal || 0,
+      total: savedInvoice.total || 0,
+    });
+
+    setItems(savedInvoice.items || []);
+
+    if (savedInvoice.sender) {
+      setSender(savedInvoice.sender);
+    }
+
+    if (savedInvoice.business) {
+      setBusiness(savedInvoice.business);
+    }
+
+    if (savedInvoice.bankDetails) {
+      console.log(savedInvoice.bankDetails);
+      setBankDetails({
+        account: savedInvoice.bankDetails.account || "",
+        sort_code: savedInvoice.bankDetails.sort_code || "",
+        account_name: savedInvoice.bankDetails.account_name || "",
+      });
+    }
+  };
+
   useEffect(() => {
-    updateSubTotal();
-    randomHex(5);
-  }, [invoiceDetails.tax, setItems]);
+    // Only generate invoice number if it doesn't exist
+    if (!invoiceDetails.invoiceNo) {
+      randomHex(5);
+    }
 
-  const [dialogSender, setDialogSender] = useState(false);
-  const [dialogBusiness, setDialogBusiness] = useState(false);
+    // Calculate totals whenever items or tax changes
+    const { subTotal, total } = calculateTotals(items, invoiceDetails.tax);
+    setInvoiceDetails((prev) => ({ ...prev, subTotal, total }));
+  }, [items, invoiceDetails.tax]); // Dependencies include both items and tax
 
-  const contentRef = useRef<HTMLDivElement>(null);
-  const reactToPrintFn = useReactToPrint({ contentRef });
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return `${day}-${month}-${year}`; // Convert yyyy-MM-dd to dd-MM-yyyy
+  };
 
   return (
-    <div className="max-w-4xl mx-auto min-h-full p-4 bg-white shadow-lg rounded-lg text-slate-800">
-      {/* Print Button */}
-      <span className="flex justify-between">
-        <button
-          onClick={reactToPrintFn}
-          className="bg-blue-500 text-white px-4 py-2 rounded mb-4 hover:bg-blue-600"
-        >
-          Print Invoice
-        </button>
-        <button
-          onClick={clearInvoice}
-          className="bg-blue-500 text-white px-4 py-2 rounded mb-4 hover:bg-blue-600"
-        >
-          Clear Invoice
-        </button>
-
-        <button
-          onClick={saveInvoice}
-          className="bg-blue-500 text-white px-4 py-2 rounded mb-4 hover:bg-blue-600"
-        >
-          Save Invoice
-        </button>
-      </span>
+    <div className="relative max-w-4xl mx-auto min-h-full p-4 bg-white shadow-lg rounded-lg text-slate-800">
+      <InvoiceSidebar
+        onPrint={reactToPrintFn}
+        onClear={clearInvoice}
+        onSave={saveInvoice}
+        onLoadInvoice={handleLoadInvoice}
+      />
       <DialogSender
         open={dialogSender}
         set={setDialogSender}
@@ -229,6 +305,13 @@ const CreateInvoice: React.FC = () => {
         business={business}
         setBusiness={setBusiness}
       />
+      <DialogBankDetails
+        open={isOpenBank}
+        set={setIsOpenBank}
+        bankDetails={bankDetails}
+        setBankDetails={setBankDetails}
+      />
+
       <div ref={contentRef} className="print-content">
         <h1 className="text-3xl font-bold mb-6 text-gray-800">INVOICE</h1>
 
@@ -394,11 +477,11 @@ const CreateInvoice: React.FC = () => {
                   <input
                     className="bg-transparent w-24 text-center"
                     type="text"
-                    value={item.date}
+                    value={formatDate(item.date)} // Format date for display
                     onChange={(e) => {
                       const newItems = items.map((i, idx) => {
                         if (idx === index) {
-                          return { ...i, date: e.target.value };
+                          return { ...i, date: e.target.value }; // Ensure date remains consistent
                         }
                         return i;
                       });
@@ -406,6 +489,7 @@ const CreateInvoice: React.FC = () => {
                     }}
                   />{" "}
                 </td>
+
                 <td className="border border-transparent p-1 text-left">
                   <input
                     className="bg-transparent"
@@ -454,18 +538,30 @@ const CreateInvoice: React.FC = () => {
                     }}
                   />
                 </td>
-                <td className="border border-transparent p-1 flex justify-between">
+                <td className="border border-transparent p-1 text-center">
                   £{(item.rate * item.qty).toFixed(2)}
                   <button
-                    className="bg-red-500 p-1 text-white rounded hover:bg-red-600 print:hidden"
-                    // remove the item from the list
-                    // nice animation when on hover element
+                    className="bg-red-500 p-1 text-white rounded hover:bg-red-600 print:hidden ml-2"
                     onClick={() => {
+                      // Remove the item at the current index
                       const newItems = items.filter((_, idx) => idx !== index);
+
+                      // Update state with the new items array
                       setItems(newItems);
+
+                      // Recalculate totals
+                      const { subTotal, total } = calculateTotals(
+                        newItems,
+                        invoiceDetails.tax
+                      );
+                      setInvoiceDetails((prev) => ({
+                        ...prev,
+                        subTotal,
+                        total,
+                      }));
                     }}
                   >
-                    X
+                    Remove
                   </button>
                 </td>
               </tr>
@@ -474,12 +570,35 @@ const CreateInvoice: React.FC = () => {
         </table>
 
         {/* Subtotals */}
-        <div className="mt-6 grid grid-cols-2">
+        <div className=" grid mt-8 grid-cols-2">
           <div>
-            <h3 className="font-semibold">Payment Info:</h3>
-            <p>Account: 2222222</p>
-            <p>A/C Name: Laura Tanase</p>
-            <p>Bank Details: NationWide</p>
+            <div
+              className="relative hover:border-dashed hover:border-2 hover:border-blue-400 border-dashed border-white border-2 p-4 hover:bg-blue-200 ease-in-out duration-300 rounded-lg cursor-pointer"
+              onClick={() => setIsOpenBank(true)}
+            >
+              {bankDetails.account_name ? (
+                <>
+                  <p className="pl-4 absolute top-0 left-0 text-[12px] text-gray-500 text-ellipsis tracking-widest">
+                    PAYMENT DETAILS:
+                  </p>
+                  <div className="mt-4">
+                    <p className="font-semibold">{bankDetails.account_name}</p>
+                    <p>Account: {bankDetails.account}</p>
+                    <p>Sort Code: {bankDetails.sort_code}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center h-20">
+                  <BsCreditCard2Back className="text-xl text-gray-500" />
+                  <div className="ml-4">
+                    <h2 className="text-gray-500">Bank Details</h2>
+                    <span className="text-gray-500">
+                      Add your payment information
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="space-y-2 text-right">
             <div className="flex justify-between">
@@ -492,12 +611,13 @@ const CreateInvoice: React.FC = () => {
                 <input
                   type="number"
                   value={invoiceDetails.tax}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setInvoiceDetails({
                       ...invoiceDetails,
                       tax: Number(e.target.value),
-                    })
-                  }
+                    });
+                    updateSubTotal(); // Recalculate totals when tax changes
+                  }}
                   className="ml-4 mr-[-4] w-8"
                 />
                 <span>%</span>
