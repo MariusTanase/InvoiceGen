@@ -18,7 +18,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media print {
   .print-content {
-    padding: 20px;
+    padding: 1rem;
     width: 100%;
     margin: 0;
     background: white;

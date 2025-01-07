@@ -74,6 +74,80 @@ const CreateInvoice: React.FC = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
 
+  // Local Storage Functions
+  const saveToLocalStorage = () => {
+    const invoiceState = {
+      items,
+      currentItem,
+      invoiceDetails,
+      bankDetails,
+      sender,
+      business,
+    };
+    localStorage.setItem("invoiceState", JSON.stringify(invoiceState));
+  };
+
+  const loadFromLocalStorage = () => {
+    const savedState = localStorage.getItem("invoiceState");
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      setItems(parsedState.items || []);
+      setCurrentItem(
+        parsedState.currentItem || {
+          date: "",
+          description: "",
+          qty: 0,
+          rate: 0,
+          amount: 0,
+        }
+      );
+      setInvoiceDetails(
+        parsedState.invoiceDetails || {
+          items: [],
+          invoiceNo: "",
+          invoiceDate: "",
+          dueDate: "",
+          recipient: "",
+          date: "",
+          tax: 0,
+          subTotal: 0,
+          total: 0,
+        }
+      );
+      setBankDetails(
+        parsedState.bankDetails || {
+          account: "",
+          sort_code: "",
+          account_name: "",
+        }
+      );
+      setSender(
+        parsedState.sender || {
+          name: "",
+          address1: "",
+          address2: "",
+          city: "",
+          country: "",
+          postcode: "",
+          email: "",
+          phone: "",
+        }
+      );
+      setBusiness(
+        parsedState.business || {
+          name: "",
+          address1: "",
+          address2: "",
+          city: "",
+          country: "",
+          postcode: "",
+          email: "",
+          phone: "",
+        }
+      );
+    }
+  };
+
   // Helper function to calculate subtotal and total
   const calculateTotals = (updatedItems: InvoiceItem[], tax: number) => {
     const subTotal = updatedItems.reduce((sum, item) => sum + item.amount, 0);
@@ -107,15 +181,9 @@ const CreateInvoice: React.FC = () => {
       return;
     }
 
-    const formattedDate = currentItem.date
-      ? currentItem.date.split("-").reverse().join("-") // Ensure date format is consistent
-      : "";
-
+    // Keep the date in yyyy-mm-dd format for storage
     const amount = currentItem.qty * currentItem.rate;
-    const newItems = [
-      ...items,
-      { ...currentItem, date: formattedDate, amount },
-    ];
+    const newItems = [...items, { ...currentItem, amount }];
 
     const { subTotal, total } = calculateTotals(newItems, invoiceDetails.tax);
 
@@ -127,6 +195,7 @@ const CreateInvoice: React.FC = () => {
       total,
     }));
     setCurrentItem({ date: "", description: "", qty: 0, rate: 0, amount: 0 });
+    saveToLocalStorage();
   };
 
   // Generate a random hex string for invoice number
@@ -181,12 +250,10 @@ const CreateInvoice: React.FC = () => {
     });
     setBankDetails({
       account: "",
-      sortCode: "",
-      accountName: "",
+      sort_code: "",
+      account_name: "",
     });
-    localStorage.removeItem("senderData");
-    localStorage.removeItem("businessData");
-    localStorage.removeItem("bankDetails");
+    localStorage.removeItem("invoiceState"); // Clear localStorage
   };
 
   const saveInvoice = async () => {
@@ -194,7 +261,7 @@ const CreateInvoice: React.FC = () => {
       return;
     }
 
-    if (!sender.name || !business.name || !bankDetails.accountName) {
+    if (!sender.name || !business.name || !bankDetails.account_name) {
       alert(
         "Please fill in all required details (Sender, Business, and Bank Details)"
       );
@@ -259,30 +326,52 @@ const CreateInvoice: React.FC = () => {
     }
 
     if (savedInvoice.bankDetails) {
-      console.log(savedInvoice.bankDetails);
       setBankDetails({
         account: savedInvoice.bankDetails.account || "",
         sort_code: savedInvoice.bankDetails.sort_code || "",
         account_name: savedInvoice.bankDetails.account_name || "",
       });
     }
+
+    saveToLocalStorage(); // Save loaded invoice to localStorage
   };
 
   useEffect(() => {
+    // Load saved state on mount
+    loadFromLocalStorage();
+
     // Only generate invoice number if it doesn't exist
     if (!invoiceDetails.invoiceNo) {
       randomHex(5);
     }
+  }, []); // Run once on mount
 
+  useEffect(() => {
     // Calculate totals whenever items or tax changes
     const { subTotal, total } = calculateTotals(items, invoiceDetails.tax);
     setInvoiceDetails((prev) => ({ ...prev, subTotal, total }));
-  }, [items, invoiceDetails.tax]); // Dependencies include both items and tax
+
+    // Save to localStorage whenever state changes
+    saveToLocalStorage();
+  }, [items, invoiceDetails.tax]);
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return "";
-    const [year, month, day] = dateString.split("-");
-    return `${day}-${month}-${year}`; // Convert yyyy-MM-dd to dd-MM-yyyy
+    try {
+      // Split the date string and check if it's already in dd-mm-yyyy format
+      if (dateString.includes("-")) {
+        const parts = dateString.split("-");
+        // If the first part is a year (length 4), then convert
+        if (parts[0].length === 4) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert from yyyy-mm-dd to dd-mm-yyyy
+        }
+        // If it's already in dd-mm-yyyy format, return as is
+        return dateString;
+      }
+      return dateString;
+    } catch (error) {
+      return dateString; // Return original string if parsing fails
+    }
   };
 
   return (
@@ -318,12 +407,10 @@ const CreateInvoice: React.FC = () => {
         {/* Billed To & Invoice Details */}
         <div className="grid grid-cols-2 gap-6">
           {/* Left: Upload & Contact Info */}
-
           <div
             className="hover:border-dashed hover:border-2 hover:border-blue-400 border-dashed border-white border-2 pt-4 pr-4 pb-4 hover:bg-blue-200 ease-in-out duration-300 rounded-lg cursor-pointer"
             onClick={() => setDialogSender(true)}
           >
-            {/* {if any of the sender data is empty, then show something else such as 'small icon', 'Company Name' and a p with 'Add your company details'} */}
             {sender.name ? (
               <>
                 <p className="font-semibold">{sender.name}</p>
@@ -348,7 +435,6 @@ const CreateInvoice: React.FC = () => {
               </div>
             )}
           </div>
-
           {/* Right: Invoice Details */}
           <div
             className="relative hover:border-dashed hover:border-2 hover:border-blue-400 border-dashed border-white border-2 p-4 hover:bg-blue-200 ease-in-out duration-300 rounded-lg cursor-pointer"
@@ -384,7 +470,7 @@ const CreateInvoice: React.FC = () => {
         </div>
 
         {/* Invoice Details */}
-        <div className="flex flex-col bg-blue-100 my-8 rounded-lg w-fit p-4">
+        <div className="flex flex-col my-4 bg-blue-100 rounded-lg w-fit p-4">
           <p>
             Invoice No:{" "}
             <span className="font-semibold">{invoiceDetails.invoiceNo}</span>
@@ -400,7 +486,6 @@ const CreateInvoice: React.FC = () => {
                   invoiceDate: e.target.value,
                 })
               }
-              // hide icon
               className="p-2 rounded bg-blue-100"
             />
           </h2>
@@ -408,49 +493,96 @@ const CreateInvoice: React.FC = () => {
 
         {/* Items Table */}
         <div className="print:hidden">
-          <h2 className="text-xl font-semibold mt-6">Item Description</h2>
-          <div className="flex space-x-2 mt-2">
-            {/* do it with datepicker */}
-            {/* add DatePicker for setCurrentItem */}
-            <input
-              type="date"
-              // grey out the date out of the range
-              value={currentItem.date}
-              onChange={(e) =>
-                setCurrentItem({ ...currentItem, date: e.target.value })
-              }
-              className="border p-2 rounded"
-            />
+          <h2 className="text-xl font-semibold mt-6">Add item</h2>
+          <div className="grid grid-cols-5 gap-4 mt-2">
+            <div className="flex flex-col">
+              <label
+                htmlFor="date"
+                className="text-sm font-medium text-gray-700 mb-1"
+              >
+                Date
+              </label>
+              <input
+                type="date"
+                id="date"
+                value={currentItem.date}
+                onChange={(e) =>
+                  setCurrentItem({ ...currentItem, date: e.target.value })
+                }
+                className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
 
-            <input
-              className="border p-2 flex-1 rounded"
-              placeholder="Description"
-              value={currentItem.description}
-              onChange={(e) =>
-                setCurrentItem({ ...currentItem, description: e.target.value })
-              }
-            />
-            <input
-              type="number"
-              className="border p-2 w-24 rounded"
-              placeholder="Qty"
-              value={currentItem.qty}
-              onChange={(e) =>
-                setCurrentItem({ ...currentItem, qty: Number(e.target.value) })
-              }
-            />
-            <input
-              type="number"
-              className="border p-2 w-24 rounded"
-              placeholder="Rate"
-              value={currentItem.rate}
-              onChange={(e) =>
-                setCurrentItem({ ...currentItem, rate: Number(e.target.value) })
-              }
-            />
+            <div className="flex flex-col col-span-2">
+              <label
+                htmlFor="description"
+                className="text-sm font-medium text-gray-700 mb-1"
+              >
+                Description
+              </label>
+              <input
+                id="description"
+                className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter description"
+                value={currentItem.description}
+                onChange={(e) =>
+                  setCurrentItem({
+                    ...currentItem,
+                    description: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label
+                htmlFor="qty"
+                className="text-sm font-medium text-gray-700 mb-1"
+              >
+                Quantity
+              </label>
+              <input
+                type="number"
+                id="qty"
+                className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+                value={currentItem.qty}
+                onChange={(e) =>
+                  setCurrentItem({
+                    ...currentItem,
+                    qty: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label
+                htmlFor="rate"
+                className="text-sm font-medium text-gray-700 mb-1"
+              >
+                Rate
+              </label>
+              <input
+                type="number"
+                id="rate"
+                className="border p-2 rounded focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+                value={currentItem.rate}
+                onChange={(e) =>
+                  setCurrentItem({
+                    ...currentItem,
+                    rate: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
             <button
               onClick={addItem}
-              className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-200"
             >
               Add Row
             </button>
@@ -458,41 +590,38 @@ const CreateInvoice: React.FC = () => {
         </div>
 
         {/* Table Display */}
-        <table className="w-full mt-4 border-collapse border border-transparent rounded-md ">
+        <table className="w-full mt-4 border-collapse border border-transparent rounded-md">
           <thead className="border rounded-sm">
             <tr className="bg-blue-100">
               <th className="border p-2">Date</th>
-              <th className="border p-2">Item Description</th>
-              <th className="border p-2">Qty</th>
+              <th className="border p-2">Description</th>
+              <th className="border p-2">Hours</th>
               <th className="border p-2">Rate</th>
               <th className="border p-2">Amount</th>
             </tr>
           </thead>
-          {/* 1 color gray-100, 1 blue-100 */}
           <tbody className="border-transparent">
-            {/* add the ability to edit the text if there needs any change */}
             {items.map((item, index) => (
               <tr className="even:bg-gray-100" key={index}>
                 <td className="border border-transparent p-1 text-center">
                   <input
                     className="bg-transparent w-24 text-center"
                     type="text"
-                    value={formatDate(item.date)} // Format date for display
+                    value={formatDate(item.date)} // This will now properly format the date
                     onChange={(e) => {
                       const newItems = items.map((i, idx) => {
                         if (idx === index) {
-                          return { ...i, date: e.target.value }; // Ensure date remains consistent
+                          return { ...i, date: e.target.value };
                         }
                         return i;
                       });
                       setItems(newItems);
                     }}
-                  />{" "}
+                  />
                 </td>
-
                 <td className="border border-transparent p-1 text-left">
                   <input
-                    className="bg-transparent"
+                    className="bg-transparent w-full"
                     type="text"
                     value={item.description}
                     onChange={(e) => {
@@ -508,7 +637,7 @@ const CreateInvoice: React.FC = () => {
                 </td>
                 <td className="border border-transparent p-1 w-fit text-center">
                   <input
-                    className="bg-transparent w-8 text-center"
+                    className="bg-transparent w-12 text-center"
                     type="number"
                     value={item.qty}
                     onChange={(e) => {
@@ -543,13 +672,8 @@ const CreateInvoice: React.FC = () => {
                   <button
                     className="bg-red-500 p-1 text-white rounded hover:bg-red-600 print:hidden ml-2"
                     onClick={() => {
-                      // Remove the item at the current index
                       const newItems = items.filter((_, idx) => idx !== index);
-
-                      // Update state with the new items array
                       setItems(newItems);
-
-                      // Recalculate totals
                       const { subTotal, total } = calculateTotals(
                         newItems,
                         invoiceDetails.tax
@@ -569,8 +693,8 @@ const CreateInvoice: React.FC = () => {
           </tbody>
         </table>
 
-        {/* Subtotals */}
-        <div className=" grid mt-8 grid-cols-2">
+        {/* Subtotals and Bank Details */}
+        <div className="grid mt-8 grid-cols-2">
           <div>
             <div
               className="relative hover:border-dashed hover:border-2 hover:border-blue-400 border-dashed border-white border-2 p-4 hover:bg-blue-200 ease-in-out duration-300 rounded-lg cursor-pointer"
@@ -584,7 +708,16 @@ const CreateInvoice: React.FC = () => {
                   <div className="mt-4">
                     <p className="font-semibold">{bankDetails.account_name}</p>
                     <p>Account: {bankDetails.account}</p>
-                    <p>Sort Code: {bankDetails.sort_code}</p>
+                    <p>
+                      Sort Code:{" "}
+                      {
+                        // make the sortcode to be displayed in the format xx-xx-xx
+                        bankDetails.sort_code.replace(
+                          /(\d{2})(\d{2})(\d{2})/,
+                          "$1-$2-$3"
+                        )
+                      }
+                    </p>
                   </div>
                 </>
               ) : (
@@ -616,7 +749,7 @@ const CreateInvoice: React.FC = () => {
                       ...invoiceDetails,
                       tax: Number(e.target.value),
                     });
-                    updateSubTotal(); // Recalculate totals when tax changes
+                    updateSubTotal();
                   }}
                   className="ml-4 mr-[-4] w-8"
                 />
@@ -637,15 +770,11 @@ const CreateInvoice: React.FC = () => {
         </div>
 
         {/* Terms */}
-        {/* <h3 className="font-semibold mt-6">Terms & Conditions</h3>
+        <h3 className="font-semibold mt-6">Notes</h3>
         <p className="text-gray-600">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          I understand that I am responsible for the payment of income tax and
+          national insurance contributions to HMRC in relation to this invoice.
         </p>
-
-        <footer className="text-center mt-8 text-white bg-blue-500 p-2 rounded">
-          Thank you for your business!
-        </footer> */}
       </div>
     </div>
   );

@@ -61,14 +61,7 @@ const DialogBusiness = ({
 
   const validateForm = (): boolean => {
     const newErrors: Partial<BusinessData> = {};
-    const requiredFields = [
-      "name",
-      "address1",
-      "city",
-      "country",
-      "postcode",
-      "email",
-    ];
+    const requiredFields = ["name", "address1", "city", "country", "postcode"];
 
     requiredFields.forEach((field) => {
       if (!business[field as keyof BusinessData]) {
