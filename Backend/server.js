@@ -8,7 +8,11 @@ const PORT = 5000;
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: "*"
+}));
+
+
 
 // SQLite Database Setup
 const db = new sqlite3.Database("./db/database.db", (err) => {

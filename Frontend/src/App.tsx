@@ -14,7 +14,6 @@ function App() {
       </nav>
       <Routes>
         <Route path="*" element={<NotFound />} />
-        <Route path="/" element={<CreateInvoice/>} />
         <Route path="/invoice" element={<CreateInvoice />} />
         <Route path="/history" element={<InvoiceHistory />} />
         <Route path="/clients" element={<div>Clients</div>} />

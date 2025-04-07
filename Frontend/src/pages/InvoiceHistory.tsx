@@ -8,6 +8,7 @@ import {
   EyeIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+import api from "../api";
 
 interface Invoice {
   id?: number;
@@ -33,7 +34,7 @@ const InvoiceHistory: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await axios.get("http://localhost:5000/api/invoices");
+      const response = await api.get("/invoices");
       if (Array.isArray(response.data)) {
         setInvoices(response.data);
       } else {
