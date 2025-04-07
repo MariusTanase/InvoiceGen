@@ -3,7 +3,8 @@
 A full-stack invoice management application built with React.js and Express.js. This application allows freelancers and small businesses to create, manage, and track invoices with an intuitive user interface.
 They are saved localy and there is no need for account. This app is made for my wife which is a Locum Pharmacist to generate her invoices.
 
-![Invoice App Screenshot](https://via.placeholder.com/800x450?text=Invoice+App+Screenshot)
+![Front-Page](https://github.com/user-attachments/assets/3d16fa55-631e-4445-a17f-a3757dfad782)
+
 
 ## Features
 
