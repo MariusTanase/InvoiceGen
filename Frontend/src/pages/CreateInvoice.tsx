@@ -6,15 +6,14 @@ import {
   InvoiceItem,
   BankDetails,
 } from "../types/types";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from "date-fns";
 import { BsCreditCard2Back, BsFillPersonLinesFill } from "react-icons/bs";
 import DialogSender from "../components/Invoice/DialogSender";
 import DialogBusiness from "../components/Invoice/DialogBusiness";
 import { useReactToPrint } from "react-to-print";
 import DialogBankDetails from "../components/Invoice/DialogBank";
 import InvoiceSidebar from "../components/Invoice/Sidebar";
+import api from "../api";
 
 const CreateInvoice: React.FC = () => {
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -74,7 +73,7 @@ const CreateInvoice: React.FC = () => {
   const reactToPrintFn = useReactToPrint({ contentRef });
 
   // Local Storage Functions
-  const saveToLocalStorage = () => {
+  const saveToLocalStorage = React.useCallback(() => {
     const invoiceState = {
       items,
       currentItem,
@@ -84,7 +83,7 @@ const CreateInvoice: React.FC = () => {
       business,
     };
     localStorage.setItem("invoiceState", JSON.stringify(invoiceState));
-  };
+  }, [items, currentItem, invoiceDetails, bankDetails, sender, business]);
 
   const loadFromLocalStorage = () => {
     const savedState = localStorage.getItem("invoiceState");
@@ -267,7 +266,7 @@ const CreateInvoice: React.FC = () => {
       return;
     }
 
-    let bigObject = {
+    const bigObject = {
       invoiceDetails: {
         ...invoiceDetails,
         items: items,
@@ -278,30 +277,24 @@ const CreateInvoice: React.FC = () => {
     };
 
     try {
-      const response = await fetch("http://192.168.1.121:5000/api/invoices", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bigObject),
-      });
+      await api.post("/invoices", bigObject);
 
-      if (response.ok) {
-        alert("Invoice saved successfully!");
-        clearInvoice();
-      } else {
-        const errorData = await response.json();
-        alert(
-          `Failed to save invoice: ${errorData.message || "Please try again."}`
-        );
-      }
-    } catch (error) {
+      alert("Invoice saved successfully!");
+      clearInvoice();
+    } catch (error: unknown) {
       console.error("Error saving invoice:", error);
-      alert("An error occurred while saving the invoice. Please try again.");
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An error occurred. Please try again.";
+
+      alert(`Failed to save invoice: ${message}`);
     }
+
   };
 
-  const handleLoadInvoice = (savedInvoice: any) => {
+  const handleLoadInvoice = (savedInvoice: Invoice) => {
     setInvoiceDetails({
       items: savedInvoice.items || [],
       invoiceNo: savedInvoice.invoiceNo,
@@ -343,7 +336,7 @@ const CreateInvoice: React.FC = () => {
     if (!invoiceDetails.invoiceNo) {
       randomHex(5);
     }
-  }, []); // Run once on mount
+  }, []); // Run once on mount or when invoiceNo changes
 
   useEffect(() => {
     // Calculate totals whenever items or tax changes
@@ -352,7 +345,7 @@ const CreateInvoice: React.FC = () => {
 
     // Save to localStorage whenever state changes
     saveToLocalStorage();
-  }, [items, invoiceDetails.tax]);
+  }, [items, invoiceDetails.tax, saveToLocalStorage]);
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return "";
