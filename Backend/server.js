@@ -217,7 +217,7 @@ app.post("/api/bank-details", (req, res) => {
 app.get("/api/invoices", async (req, res) => {
   try {
     const invoices = await new Promise((resolve, reject) => {
-      db.all("SELECT * FROM invoices ORDER BY created_at DESC", (err, rows) => {
+      db.all("SELECT * FROM invoices ORDER BY invoiceDate DESC", (err, rows) => {
         if (err) return reject(err);
         resolve(rows);
       });

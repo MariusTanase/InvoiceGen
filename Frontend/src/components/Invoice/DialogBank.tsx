@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { BanknotesIcon } from "@heroicons/react/24/outline";
 import {
@@ -107,7 +108,7 @@ const saveBankDetails = async () => {
 
     setSavedBankDetails((prev) => [savedDetails, ...prev]);
     set(false); // assuming this closes a modal or something similar
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Error saving bank details:", error);
     const message =
       error?.response?.data?.message || "Failed to save bank details";
