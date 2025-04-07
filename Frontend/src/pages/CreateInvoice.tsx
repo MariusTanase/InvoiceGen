@@ -200,7 +200,8 @@ const CreateInvoice: React.FC = () => {
   const randomHex = (length: number) => {
     const hex =
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let output = "LT-";
+    const currentYear = new Date().getFullYear();
+    let output = `${currentYear}-`;
     for (let i = 0; i < length; i++) {
       output += hex.charAt(Math.floor(Math.random() * hex.length));
     }
@@ -345,7 +346,7 @@ const CreateInvoice: React.FC = () => {
 
     // Save to localStorage whenever state changes
     saveToLocalStorage();
-  }, [items, invoiceDetails.tax, saveToLocalStorage]);
+  }, [items, invoiceDetails.tax, currentItem]);
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return "";
@@ -601,11 +602,11 @@ const CreateInvoice: React.FC = () => {
                     type="text"
                     value={formatDate(item.date)} // This will now properly format the date
                     onChange={(e) => {
-                      const newItems = items.map((i, idx) => {
+                      const newItems = items.map((item, idx) => {
                         if (idx === index) {
-                          return { ...i, date: e.target.value };
+                          return { ...item, date: e.target.value };
                         }
-                        return i;
+                        return item;
                       });
                       setItems(newItems);
                     }}
@@ -617,11 +618,11 @@ const CreateInvoice: React.FC = () => {
                     type="text"
                     value={item.description}
                     onChange={(e) => {
-                      const newItems = items.map((i, idx) => {
+                      const newItems = items.map((item, idx) => {
                         if (idx === index) {
-                          return { ...i, description: e.target.value };
+                          return { ...item, description: e.target.value };
                         }
-                        return i;
+                        return item;
                       });
                       setItems(newItems);
                     }}
@@ -633,11 +634,16 @@ const CreateInvoice: React.FC = () => {
                     type="number"
                     value={item.qty}
                     onChange={(e) => {
-                      const newItems = items.map((i, idx) => {
+                      const newItems = items.map((item, idx) => {
                         if (idx === index) {
-                          return { ...i, qty: Number(e.target.value) };
+                          const newQty = Number(e.target.value);
+                          return { 
+                            ...item, 
+                            qty: newQty,
+                            amount: newQty * item.rate // Make sure amount is recalculated 
+                          };
                         }
-                        return i;
+                        return item;
                       });
                       setItems(newItems);
                     }}
@@ -649,11 +655,16 @@ const CreateInvoice: React.FC = () => {
                     type="number"
                     value={item.rate}
                     onChange={(e) => {
-                      const newItems = items.map((i, idx) => {
+                      const newItems = items.map((item, idx) => {
                         if (idx === index) {
-                          return { ...i, rate: Number(e.target.value) };
+                          const newRate = Number(e.target.value);
+                          return { 
+                            ...item, 
+                            rate: newRate,
+                            amount: item.qty * newRate // Make sure amount is recalculated
+                          };
                         }
-                        return i;
+                        return item;
                       });
                       setItems(newItems);
                     }}
