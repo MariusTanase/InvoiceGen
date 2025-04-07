@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@headlessui/react";
 import { BankDetails } from "../../types/types";
+import api from "../../api";
 
 type DialogBankDetailsProps = {
   open: boolean;
@@ -32,10 +33,8 @@ const DialogBankDetails = ({
   const fetchSavedBankDetails = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        "http://192.168.1.121:5000/api/bank-details"
-      );
-      const data = await response.json();
+      const response = await api.get("/bank-details");
+      const data = response.data;
       setSavedBankDetails(data);
     } catch (error) {
       console.error("Failed to fetch saved bank details:", error);
@@ -95,31 +94,28 @@ const DialogBankDetails = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const saveBankDetails = async () => {
-    if (!validateForm()) return;
+const saveBankDetails = async () => {
+  if (!validateForm()) return;
 
-    try {
-      setIsLoading(true);
-      const response = await fetch(
-        "http://192.168.1.121:5000/api/bank-details",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bankDetails),
-        }
-      );
+  try {
+    setIsLoading(true);
 
-      if (!response.ok) throw new Error("Failed to save bank details");
+    const response = await api.post("/bank-details", bankDetails);
 
-      const savedDetails = await response.json();
-      setSavedBankDetails((prev) => [savedDetails, ...prev]);
-      set(false);
-    } catch (error) {
-      console.error("Error saving bank details:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // assuming the saved details are in response.data
+    const savedDetails = response.data;
+
+    setSavedBankDetails((prev) => [savedDetails, ...prev]);
+    set(false); // assuming this closes a modal or something similar
+  } catch (error: unknown) {
+    console.error("Error saving bank details:", error);
+    const message =
+      error?.response?.data?.message || "Failed to save bank details";
+    alert(message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onClose={() => set(false)} className="relative z-10">

@@ -34,7 +34,9 @@ const InvoiceHistory: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      
       const response = await api.get("/invoices");
+
       if (Array.isArray(response.data)) {
         setInvoices(response.data);
       } else {

@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@headlessui/react";
 import { BusinessData } from "../../types/types";
+import api from "../../api";
 
 type DialogBusinessProps = {
   open: boolean;
@@ -32,8 +33,8 @@ const DialogBusiness = ({
   const fetchSavedBusinesses = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("http://192.168.1.121:5000/api/businesses");
-      const data = await response.json();
+      const response = await api.get("/businesses");
+      const data = await response.data
       setSavedBusinesses(data);
     } catch (error) {
       console.error("Failed to fetch saved businesses:", error);
@@ -87,28 +88,27 @@ const DialogBusiness = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const saveBusiness = async () => {
-    if (!validateForm()) return;
+const saveBusiness = async () => {
+  if (!validateForm()) return;
 
-    try {
-      setIsLoading(true);
-      const response = await fetch("http://192.168.1.121:5000/api/businesses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(business),
-      });
+  try {
+    setIsLoading(true);
 
-      if (!response.ok) throw new Error("Failed to save business");
+    const response = await api.post("/businesses", business);
 
-      const savedBusiness = await response.json();
-      setSavedBusinesses((prev) => [savedBusiness, ...prev]);
-      set(false);
-    } catch (error) {
-      console.error("Error saving business:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const savedBusiness = response.data;
+
+    setSavedBusinesses((prev) => [savedBusiness, ...prev]);
+    set(false); // likely closing modal or reset flag
+  } catch (error: any) {
+    console.error("Error saving business:", error);
+    const message =
+      error?.response?.data?.message || "Failed to save business";
+    alert(message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onClose={() => set(false)} className="relative z-10">

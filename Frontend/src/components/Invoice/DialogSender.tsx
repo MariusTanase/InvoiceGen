@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@headlessui/react";
 import { SenderData } from "../../types/types";
+import api from "../../api";
 
 type DialogSenderProps = {
   open: boolean;
@@ -27,8 +28,8 @@ const DialogSender = ({ open, set, sender, setSender }: DialogSenderProps) => {
   const fetchSavedSenders = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("http://192.168.1.121:5000/api/senders");
-      const data = await response.json();
+      const response = await api.get("/senders");
+      const data = await response.data;
       setSavedSenders(data);
     } catch (error) {
       console.error("Failed to fetch saved senders:", error);
@@ -82,28 +83,28 @@ const DialogSender = ({ open, set, sender, setSender }: DialogSenderProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const saveSender = async () => {
-    if (!validateForm()) return;
+const saveSender = async () => {
+  if (!validateForm()) return;
 
-    try {
-      setIsLoading(true);
-      const response = await fetch("http://192.168.1.121:5000/api/senders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sender),
-      });
+  try {
+    setIsLoading(true);
 
-      if (!response.ok) throw new Error("Failed to save sender");
+    const response = await api.post("/senders", sender);
 
-      const savedSender = await response.json();
-      setSavedSenders((prev) => [savedSender, ...prev]);
-      set(false);
-    } catch (error) {
-      console.error("Error saving sender:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const savedSender = response.data;
+
+    setSavedSenders((prev) => [savedSender, ...prev]);
+    set(false); 
+  } catch (error: any) {
+    console.error("Error saving sender:", error);
+    const message =
+      error?.response?.data?.message || "Failed to save sender";
+    alert(message);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <Dialog open={open} onClose={() => set(false)} className="relative z-10">

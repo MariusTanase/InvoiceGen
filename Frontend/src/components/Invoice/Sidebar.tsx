@@ -8,6 +8,7 @@ import {
   DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
+import api from "../../api";
 
 interface InvoiceSidebarProps {
   onPrint: () => void;
@@ -29,8 +30,8 @@ const InvoiceSidebar = ({
   const fetchSavedInvoices = async () => {
     try {
       setIsLoadingInvoices(true);
-      const response = await fetch("http://192.168.1.121:5000/api/invoices");
-      const data = await response.json();
+      const response = await api.get("/invoices");
+      const data = await response.data;
       setSavedInvoices(data);
       setShowInvoiceList(true);
     } catch (error) {
