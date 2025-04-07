@@ -1,4 +1,3 @@
-// pages/CreateInvoice.tsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   ContactDetails,

@@ -1,4 +1,3 @@
-// components/DialogBusiness.tsx
 import { useState, useEffect } from "react";
 import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import {

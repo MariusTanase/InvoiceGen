@@ -1,4 +1,3 @@
-// components/InvoiceHistory.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { ContactDetails, InvoiceItem } from "../types/types";

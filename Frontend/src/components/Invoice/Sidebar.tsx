@@ -1,4 +1,3 @@
-// components/Invoice/InvoiceSidebar.tsx
 import { useState } from "react";
 import {
   DocumentTextIcon,

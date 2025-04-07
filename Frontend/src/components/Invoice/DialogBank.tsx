@@ -1,4 +1,3 @@
-// components/DialogBankDetails.tsx
 import { useState, useEffect } from "react";
 import { BanknotesIcon } from "@heroicons/react/24/outline";
 import {

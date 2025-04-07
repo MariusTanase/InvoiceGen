@@ -1,4 +1,3 @@
-// components/Invoice/ViewInvoice.tsx
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import {
   DocumentIcon,
