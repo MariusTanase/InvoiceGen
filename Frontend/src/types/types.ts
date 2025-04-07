@@ -1,14 +1,29 @@
-export interface Invoice {
+export interface ContactDetails {
   id?: number;
-  invoiceNo: string;
-  date: string;
-  dueDate: string;
-  recipient: string;
-  items: InvoiceItem[];
-  total: number;
+  name: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state?: string;
+  country: string;
+  postcode: string;
+  email: string;
+  phone?: string;
+}
+
+export type SenderData = ContactDetails;
+export type BusinessData = ContactDetails;
+
+export interface BankDetails {
+  id?: number;
+  account: string;
+  sort_code: string;
+  account_name: string;
 }
 
 export interface InvoiceItem {
+  id?: number;
+  invoice_id?: number;
   date: string;
   description: string;
   qty: number;
@@ -17,6 +32,7 @@ export interface InvoiceItem {
 }
 
 export interface InvoiceDetails {
+  items: InvoiceItem[];
   invoiceNo: string;
   invoiceDate: string;
   dueDate: string;
@@ -25,56 +41,28 @@ export interface InvoiceDetails {
   tax: number;
   subTotal: number;
   total: number;
-  items: InvoiceItem[];
 }
 
-export interface ContactDetails {
-  name: string;
-  address1: string;
-  address2: string;
-  city: string;
-  country: string;
-  postcode: string;
-  email: string;
-  phone: string;
-}
-
-export type DialogBankDetailsProps = {
-  open: boolean;
-  set: (open: boolean) => void;
+export interface Invoice {
+  id?: number;
+  invoiceNo: string;
+  invoiceDate: string;
+  dueDate: string;
+  date?: string;
+  recipient?: string;
+  tax: number;
+  subTotal: number;
+  total: number;
+  sender: SenderData;
+  business: BusinessData;
   bankDetails: BankDetails;
-  setBankDetails: (details: BankDetails) => void;
-};
+  items: InvoiceItem[];
+  created_at?: string;
+}
 
-export type BankDetails = {
-  account: string;
-  sort_code: string;
-  account_name: string;
-};
-
-// types/types.ts
-export type SenderData = {
-  id?: number;
-  name: string;
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  country: string;
-  postcode: string;
-  email: string;
-  phone: string;
-};
-
-export type BusinessData = {
-  id?: number;
-  name: string;
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  country: string;
-  postcode: string;
-  email: string;
-  phone: string;
-};
+export interface InvoiceData {
+  invoiceDetails: InvoiceDetails;
+  sender: SenderData;
+  business: BusinessData;
+  bankDetails: BankDetails;
+}

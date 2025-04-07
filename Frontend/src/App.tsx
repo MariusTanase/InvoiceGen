@@ -8,12 +8,13 @@ function App() {
   return (
     <BrowserRouter>
       <nav className="flex justify-center space-x-4 bg-slate-800 p-6">
-        <LinkNav to="/invoice" text="Create Invoice" />
-        <LinkNav to="/history" text="Invoice History" />
-        <LinkNav to="/clients" text="Clients" />
+        <LinkNav to="/invoice" text="Create Invoice" title="Create Invoice"/>
+        <LinkNav to="/history" text="Invoice History" title="Invoice History"/>
+        <LinkNav to="/clients" text="Clients" title="Clients Page"/>
       </nav>
       <Routes>
         <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<CreateInvoice/>} />
         <Route path="/invoice" element={<CreateInvoice />} />
         <Route path="/history" element={<InvoiceHistory />} />
         <Route path="/clients" element={<div>Clients</div>} />
